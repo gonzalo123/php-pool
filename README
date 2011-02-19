@@ -1,0 +1,67 @@
+An experimental connection pooling system using gearman and PHP.
+
+Simple queries. And a simple error handling:
+
+include('../lib/Pool/Client.php');
+include('../lib/Pool/Server.php');
+include('../lib/Pool/Exception.php');
+include('../lib/Pool/Server/Connection.php');
+include('../lib/Pool/Server/Stmt.php');
+
+use Pool\Client;
+$conn = Client::singleton()->getConnection(PoolConf::PG1);
+
+$sql = "SELECT * FROM TEST.TBL1";
+$stmt = $conn->prepare($sql);
+
+$stmt->execute();
+$data = $stmt->fetchall();
+echo "<p>count: " . count($data) . "</p>";
+
+try {
+    $sql = "SELECT * TEST.NON_EXISTENT_TABLE";
+    $stmt = $conn->prepare($sql);
+
+    $stmt->execute();
+    $data = $stmt->fetchall();
+    echo "<p>count: " . count($data) . "</p>";
+
+} catch (Exception $e) {
+    echo "ERROR: " . $e->getMessage();
+}
+
+print_r(Client::singleton()->info(PoolConf::PG1));
+Now with bind parameters:
+
+include('../conf/PoolConf.php');
+include('../lib/Pool/Client.php');
+include('../lib/Pool/Server.php');
+include('../lib/Pool/Exception.php');
+include('../lib/Pool/Server/Connection.php');
+include('../lib/Pool/Server/Stmt.php');
+
+use Pool\Client;
+$conn = Client::singleton()->getConnection(PoolConf::PG1);
+
+$data = $conn->prepare("SELECT * FROM TEST.TBL1 WHERE SELECCION=:S")->execute(array('S' => 1))->fetchall();
+
+echo count($data);
+
+print_r(Client::singleton()->info(PoolConf::PG1));
+And now a transaction:
+
+include('../conf/PoolConf.php');
+include('../lib/Pool/Client.php');
+include('../lib/Pool/Server.php');
+include('../lib/Pool/Exception.php');
+include('../lib/Pool/Server/Connection.php');
+include('../lib/Pool/Server/Stmt.php');
+
+use Pool\Client;
+$conn = Client::singleton()->getConnection(PoolConf::PG1);
+
+$conn->beginTransaction();
+$data = $conn->prepare("SELECT * FROM TEST.TBL1 WHERE SELECCION=:S")->execute(array('S' => 1))->fetchall();
+$conn->rollback();
+
+print_r(Client::singleton()->info(PoolConf::PG1));
